@@ -1,5 +1,5 @@
 from tkinter import *
-import time, mysql.connector,csv
+import time, mysql.connector,csv,ast
 from mysql.connector import errorcode
 from tkinter import messagebox
 class window(Tk):
@@ -10,15 +10,16 @@ class window(Tk):
             with open("dbconn.csv") as csv_file:
                 csv_reader = csv.reader(csv_file, delimiter=',')
                 for row in csv_reader:
-                    username=str(row[0])
-                    password=str(row[1])
-                    host=str(row[2])
-                    database=str(row[3])
+                    self.username=str(row[0])
+                    self.password=str(row[1])
+                    self.host=str(row[2])
+                    self.database=str(row[3])
+                    self.tablename="medicalbill"
                     break
         except:
             messagebox.showerror("Error","Please configure database connection. Goto- Options->DB Connection")
         try:
-            cnx = mysql.connector.connect(user=username, password=password, host=host, database=database)
+            self.cnx = mysql.connector.connect(user=self.username, password=self.password, host=self.host, database=self.database)
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
                 messagebox.showerror(title="Error",message="Invalid user name or Password")
@@ -29,18 +30,24 @@ class window(Tk):
             else:
                 messagebox.showerror(title="Error",message="Connection Error. Goto: Options->DB Connection to setup connection")
                 print(err)
-        else:
-            cnx.close()
+        # else:
+        #     self.cursor=self.cnx.cursor()
+        #     self.cnx.close()
 
         # initializing window
         self.geometry("852x600+0+0")
         self.minsize(852,600)
-        self.title("Hotel ManagemeBilling System")
+        self.title("Medical Billing System")
         self.config(bg="powder blue")
         try:
-            self.iconbitmap("notepad.ico")
+            self.iconbitmap("icon.ico")
         except:
             pass
+    def commit_db(self,query):
+        self.cnx.database = self.database
+        cursor=self.cnx.cursor()
+        cursor.execute(query)
+        self.cnx.commit()
     def statusbar(self):
         '''
         To show status at buttom of GUI
@@ -86,6 +93,7 @@ class window(Tk):
         entry=Entry(master,bg=bg,relief=relief,bd=bd,textvariable=variable,**kargs)
         entry.grid(ipadx=ipadx,ipady=ipady,padx=padx,pady=pady,columnspan=columnspan,rowspan=rowspan,row=row,column=column)
     def exit(self):
+        self.cnx.close() # Closing the connection before exit
         self.destroy()
 class conn_window(Frame):
     def __init__(self):
@@ -93,6 +101,10 @@ class conn_window(Frame):
         window1=Toplevel(self)
         window1.title("Database connection wizard")
         window1.geometry("500x150+100+100")
+        try:
+            window1.iconbitmap("dbconn.ico")
+        except:
+            pass
         # methods
         def updateconnfile(username,password,host,database):
             with open("dbconn.csv","w") as csv_file:
@@ -117,15 +129,18 @@ class conn_window(Frame):
                     cursor.execute(f"CREATE DATABASE IF NOT EXISTS {db} DEFAULT CHARACTER SET 'utf8'")
                     # updating database details
                     cnx.database = db
-                    Label(frame1,text=f"Successfully created database {db}. Now close this window.",bg="green").pack(side=TOP,pady=3)
+                    Label(frame1,text=f"Success!!! Please restart the program to continue...",bg="green").pack(side=TOP,pady=3)
                     # initialing table
-                    cursor.execute(f"CREATE TABLE `{db}`.`{db}` ( `invoice_no` INT NOT NULL AUTO_INCREMENT , `customer` VARCHAR(50) NOT NULL , `address` VARCHAR(150) NOT NULL , `city` VARCHAR(50) NOT NULL , `state` VARCHAR(50) NOT NULL , `doctor` VARCHAR(50) NOT NULL , `purchage_data` TEXT NOT NULL , PRIMARY KEY (`invoice_no`)) ENGINE = InnoDB")
+                    cursor.execute(f"CREATE TABLE `{db}`.`medicalbill` ( `srl_no` INT NOT NULL AUTO_INCREMENT,`invoice_no` INT NOT NULL , `customer` VARCHAR(50) NOT NULL , `address` VARCHAR(150) NOT NULL , `city` VARCHAR(50) NOT NULL , `state` VARCHAR(50) NOT NULL , `doctor` VARCHAR(50) NOT NULL , `purchage_data` TEXT NOT NULL , PRIMARY KEY (`srl_no`)) ENGINE = InnoDB")
+                    # Intializing invoice number from 1001
+                    # cursor.execute(f"ALTER TABLE medicalbill AUTO_INCREMENT=1001;")
+                    cursor.close()
                     cnx.close()
 
                 else:
                     Label(frame1,text=f"Error{err}", bg="red").pack(side=TOP,pady=3)
             else:
-                Label(frame1,text="Success!!! Restart the program",bg="green").pack(side=TOP)
+                Label(frame1,text="Success!!! Restart the program.",bg="green").pack(side=TOP)
                 cnx.close()
             updateconnfile(username=user,password=passwd,host=hst,database=db)
             
@@ -171,6 +186,49 @@ labelwidth=15
 # Main Program
 if __name__ == "__main__":
     # Definations here
+    def plot_invoice():
+        pass
+    def get_invoice_no():
+        try:
+            cursor= root.cnx.cursor()
+            query="SELECT * FROM `medicalbill` ORDER BY `invoice_no` DESC"
+            cursor.execute(query)
+            list= cursor.fetchall() #retuns a list of tupples(each result in a tuple).
+            if not list:
+                inv_no.set("1001")
+                lastinv="1001"
+            else:
+                l=1
+                for row in list:
+                    if l==1:
+                        inv=row[1]
+                        l+=1
+                    else:
+                        continue
+                inv_no.set(inv+1)   
+                lastinv=inv+1
+            cursor.close()
+            frame1.update()
+        except:
+            messagebox.showerror("Error","Internal Error")
+        return lastinv
+
+    def create_invoice():
+        invoice= get_invoice_no()
+        customer=customer_name.get()
+        c_address= local_add.get()
+        c_city= city.get()
+        c_state= state.get()
+        doc= doctor.get()
+        purchage_data= str(get_table())
+        #encoding list data to insert into db
+        prepared_data= purchage_data.replace(",","---")
+        prepared_data= purchage_data.replace("'","{")                
+        try:
+            root.commit_db(query=f"INSERT INTO `{root.database}`.`{root.tablename}` (`invoice_no`,`customer`, `address`, `city`, `state`, `doctor`, `purchage_data`) VALUES ('{invoice}','{customer}', '{c_address}', '{c_city}', '{c_state}', '{doc}', '{prepared_data}')")
+            messagebox.showinfo("Information","Invoice Created")
+        except Exception as e:
+            messagebox.showerror("error",e)
     def about():
         messagebox.showinfo("About","Developed By: ")
     def dbconn():
@@ -249,7 +307,8 @@ if __name__ == "__main__":
     root.create_grid_entry(master=frame1,variable=city,row=3,column=1,font=font1,padx=3,bd=3)
     root.create_grid_entry(master=frame1,variable=state,row=4,column=1,font=font1,padx=3,bd=3)
     root.create_grid_entry(master=frame1,variable=doctor,row=5,column=1,font=font1,padx=3,bd=3)
-    Button(frame1,text="Load from database",bg="RoyalBlue3",font=font1,fg="white").grid(row=0,column=2,padx=7)
+    Button(frame1,text="Get invoice No",bg="RoyalBlue3",font=font1,fg="white",command=get_invoice_no).grid(row=0,column=2,padx=7)
+    Button(frame1,text="Load data from DB",bg="RoyalBlue3",font=font1,fg="white").grid(row=0,column=3,padx=7)
     # creating frame2 for taking medicine details
     frame2=Frame(root)
     frame2.pack(pady=10,anchor="w",padx=10)
@@ -271,12 +330,9 @@ if __name__ == "__main__":
     frame3.pack(anchor="w",padx=10)
     # frame3 containts
     # buttons
-    root.create_button(frame3,"Create",side=LEFT,font=font2,padx=80)  
+    root.create_button(frame3,"Create",side=LEFT,font=font2,padx=80,funcname=create_invoice)  
     root.create_button(frame3,"Print",side=LEFT,font=font2,padx=80,ipadx=20)  
-    root.create_button(frame3,"Exit",side=LEFT,font=font2,padx=80,ipadx=25,funcname=root.exit) 
-    
-            
-
-
+    root.create_button(frame3,"Exit",side=LEFT,font=font2,padx=80,ipadx=25,funcname=root.exit)
+      
 
     root.mainloop()
