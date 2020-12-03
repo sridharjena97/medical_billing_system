@@ -23,7 +23,7 @@ class window(Tk):
             if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
                 messagebox.showerror(title="Error",message="Invalid user name or Password")
                 print("Something is wrong with your user name or password. Goto: Options->DB Connection to setup connection")
-            elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            elif err.errno == errorcode.ER_BAD_DB_ERROR:  
                 messagebox.showerror(title="Error",message="Database does not exsit. Goto: Options->DB Connection to setup connection")
                 print("Database does not exist")
             else:
@@ -92,11 +92,12 @@ class conn_window(Frame):
         Frame.__init__(self)
         window1=Toplevel(self)
         window1.title("Database connection wizard")
-        window1.geometry("500x120+100+100")
-        # variables
-        # window1.configure(bg=theme)
-        # font1="Arial 12 normal"
+        window1.geometry("500x150+100+100")
         # methods
+        def updateconnfile(username,password,host,database):
+            with open("dbconn.csv","w") as csv_file:
+                file=csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                file.writerow([username,password,host,database])
         def updateConnectionData():
             user=username.get()
             passwd=password.get()
@@ -104,11 +105,29 @@ class conn_window(Frame):
             db=database.get()
             try:
                 cnx = mysql.connector.connect(user=user, password=passwd, host=hst, database=db)
-            except:
-                Label(frame,text="Failed!!! Please try again...").grid(row=2,column=0)
+            except mysql.connector.Error as err:
+                if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                    Label(frame1,text="Invalid user name or Password", bg="red").pack(side=TOP,pady=3)
+                elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                    Label(frame1,text="Database doesnot exit. Creating Database...",bg="red").pack(side=TOP,pady=3)
+                    # intializing connection
+                    cnx = mysql.connector.connect(user=user, password=passwd, host=hst)
+                    # creating cursor
+                    cursor = cnx.cursor()
+                    cursor.execute(f"CREATE DATABASE IF NOT EXISTS {db} DEFAULT CHARACTER SET 'utf8'")
+                    # updating database details
+                    cnx.database = db
+                    Label(frame1,text=f"Successfully created database {db}. Now close this window.",bg="green").pack(side=TOP,pady=3)
+                    # initialing table
+                    cursor.execute(f"CREATE TABLE `{db}`.`{db}` ( `invoice_no` INT NOT NULL AUTO_INCREMENT , `customer` VARCHAR(50) NOT NULL , `address` VARCHAR(150) NOT NULL , `city` VARCHAR(50) NOT NULL , `state` VARCHAR(50) NOT NULL , `doctor` VARCHAR(50) NOT NULL , `purchage_data` TEXT NOT NULL , PRIMARY KEY (`invoice_no`)) ENGINE = InnoDB")
+                    cnx.close()
+
+                else:
+                    Label(frame1,text=f"Error{err}", bg="red").pack(side=TOP,pady=3)
             else:
-                Label(frame,text="Success!!! Restart the program").grid(row=2,column=0)
+                Label(frame1,text="Success!!! Restart the program",bg="green").pack(side=TOP)
                 cnx.close()
+            updateconnfile(username=user,password=passwd,host=hst,database=db)
             
         username=StringVar()
         password=StringVar()
@@ -140,21 +159,28 @@ class conn_window(Frame):
         Entry(frame,textvariable=host).grid(row=0,column=3,padx=2)
         Label(frame,text="Database Name",font=font1).grid(row=1,column=2,padx=2,sticky="w")
         Entry(frame,textvariable=database).grid(row=1,column=3,padx=2)
-        Button(window1,text="update",font=font1,bg="skyblue",command=updateConnectionData).pack(anchor="w",padx=10,pady=5)
-
-        
+        frame1=Frame(window1)
+        frame1.pack(anchor="w",padx=10,pady=10)
+        Button(frame1,text="update",font=font1,bg="skyblue",command=updateConnectionData).pack(padx=10,pady=5,side=LEFT)
+        Button(frame1,text="close",font=font1,bg="skyblue",command=window1.destroy).pack(side=LEFT,padx=10)
+# Gui Variables for setting widets
 font1="Arial 12 normal"
 font2="Arial 13 normal"
 theme="powder blue"
 labelwidth=15
+# Main Program
 if __name__ == "__main__":
     # Definations here
+    def about():
+        messagebox.showinfo("About","Developed By: ")
     def dbconn():
+        # creating connection window
         new=conn_window()
-    def create_table(master,row,column):
+    def create_table(master,row=4,column=10):
+        '''Note: Alter the value of row and column. Beacuse master of this grid managed by pack manager'''
         global entry
-        rows = row+1
-        columns = column+1
+        rows = row+1 #leaving space for labels eg: medicine name,qty,rate,total
+        columns = column+1 #leaving space for labels eg: srl,1,2,3....
         # create the table of widgets
         for row in range(1,rows):
             for column in range(1,columns):
@@ -167,8 +193,9 @@ if __name__ == "__main__":
             master.grid_columnconfigure(column, weight=1)
         # designate a final, empty row to fill up any extra space
         master.grid_rowconfigure(rows, weight=1)
-
-    def get_table(row,column):
+    def print_table(row=4,column=10):
+        print(get_table())
+    def get_table(row=10,column=4):
         '''Return a list of lists, containing the data in the table'''
         rows=row+1
         columns=column+1
@@ -189,9 +216,12 @@ if __name__ == "__main__":
     optionsmenu=Menu(mainmenu,tearoff=0)
     optionsmenu.add_command(label="DB Connection",command=dbconn)
     optionsmenu.add_separator()
-    optionsmenu.add_command(label="Print")
+    optionsmenu.add_command(label="Print",command=print_table)
     optionsmenu.add_command(label="Exit",command=root.exit)
     mainmenu.add_cascade(label="Options",menu=optionsmenu)
+    helpmenu=Menu(mainmenu,tearoff=0)
+    helpmenu.add_command(label="About",command=about)
+    mainmenu.add_cascade(label="Help",menu=helpmenu)
     root.configure(menu=mainmenu)
     # Creating a frame for taking basic details
     frame1=Frame(root,bg=theme)
@@ -230,8 +260,8 @@ if __name__ == "__main__":
     row=4
     column=10
     entry = {}
-    
     create_table(frame2,column,row)
+    
     for text,col in table_title:
         root.create_grid_label(master=frame2,text=text,row=0,column=col,font=font1,relief=None)
     for row in range(1,11):
