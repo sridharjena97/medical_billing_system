@@ -179,6 +179,10 @@ class conn_window(Frame):
         frame1.pack(anchor="w",padx=10,pady=10)
         Button(frame1,text="update",font=font1,bg="skyblue",command=updateConnectionData).pack(padx=10,pady=5,side=LEFT)
         Button(frame1,text="close",font=font1,bg="skyblue",command=window1.destroy).pack(side=LEFT,padx=10)
+class print_window(Frame):
+    def __init__(self,data):
+        Frame.__init__(self)
+        window1=Toplevel(self)    
 # Gui Variables for setting widets
 font1="Arial 12 normal"
 font2="Arial 13 normal"
@@ -188,7 +192,7 @@ labelwidth=15
 if __name__ == "__main__":
     # Definations here
     def clear_entries(row=10,column=4):
-        '''Return a list of lists, containing the data in the table'''
+        '''Clear Previous entries'''
         rows=row+1
         columns=column+1
         inv_no.set("")
@@ -198,8 +202,7 @@ if __name__ == "__main__":
         for row in range(1,rows):
             for column in range(1,columns):
                 index = (row, column)
-                entry[index].delete(0,'end')
-       
+                entry[index].delete(0,'end')  
     def encodeList(list):
         '''Encoding algorith of list for database entry'''
         string=str(list)
@@ -219,6 +222,7 @@ if __name__ == "__main__":
         list=ast.literal_eval(list) #convering string to list
         return list
     def plot_invoice():
+        '''Recreate invoice from invoice number. It connect to data base and fetch respective data from database.'''
         try:
             inv=inv_no.get()
             cursor= root.cnx.cursor()
@@ -231,19 +235,22 @@ if __name__ == "__main__":
                 state.set(ste)
                 doctor.set(doc)
                 decoded_list=decodeList(purchage_data)
-                
-
-
-        except Exception as e:
-            messagebox.showerror("Error",e)
+                set_table(decoded_list)
+                cursor.close()
+        except:
+            messagebox.showerror("Error","Internal Error")
+    def set_invoice_no():
+        inv=get_invoice_no()
+        inv_no.set(str(inv))
+        frame1.update()
     def get_invoice_no():
+        '''It coonect to database then fetch the last invoice number and return next invoice number'''
         try:
             cursor= root.cnx.cursor()
             query="SELECT * FROM `medicalbill` ORDER BY `invoice_no` DESC"
             cursor.execute(query)
             list= cursor.fetchall() #retuns a list of tupples(each result in a tuple).
             if not list:
-                inv_no.set("1001")
                 lastinv="1001"
             else:
                 l=1
@@ -252,17 +259,24 @@ if __name__ == "__main__":
                         inv=row[1]
                         l+=1
                     else:
-                        continue
-                inv_no.set(inv+1)   
+                        continue   
                 lastinv=inv+1
             cursor.close()
-            frame1.update()
         except:
             cursor.close()
             messagebox.showerror("Error","Internal Error")
         return lastinv
-
     def create_invoice():
+        '''Create a invoice without printing'''
+        try:
+            push_invoice()
+        except:
+            messagebox.showerror("error","Internal Error")
+        else:
+            clear_entries()
+            set_invoice_no()
+    def push_invoice():
+        '''It push invoice data entered by user to database'''
         invoice= get_invoice_no()
         customer=customer_name.get()
         c_address= local_add.get()
@@ -276,17 +290,19 @@ if __name__ == "__main__":
             root.commit_db(query=f"INSERT INTO `{root.database}`.`{root.tablename}` (`invoice_no`,`customer`, `address`, `city`, `state`, `doctor`, `purchage_data`) VALUES ('{invoice}','{customer}', '{c_address}', '{c_city}', '{c_state}', '{doc}', '{prepared_data}')")
             messagebox.showinfo("Information","Invoice Created")
         except Exception as e:
-            messagebox.showerror("error",e)
-        else:
-            clear_entries()
-            get_invoice_no()
+            messagebox.showerror("Error","Error Creating Invoice Entry")
     def about():
+        '''Shows information about the application'''
         messagebox.showinfo("About","Developed By: ")
     def dbconn():
+        '''Insentiate a database connection window'''
         # creating connection window
         new=conn_window()
     def create_table(master,row=4,column=10):
-        '''Note: Alter the value of row and column. Beacuse master of this grid managed by pack manager'''
+        '''
+        Plot series of input boxes on GUI and store all addresses in entry dictionary which is a global variable.
+        Note: Alter the value of row and column(Beacuse master of this grid managed by pack manager)
+        '''
         global entry
         rows = row+1 #leaving space for labels eg: medicine name,qty,rate,total
         columns = column+1 #leaving space for labels eg: srl,1,2,3....
@@ -302,10 +318,34 @@ if __name__ == "__main__":
             master.grid_columnconfigure(column, weight=1)
         # designate a final, empty row to fill up any extra space
         master.grid_rowconfigure(rows, weight=1)
-    def print_table(row=4,column=10):
-        print(get_table())
+    def set_table(list,row=10,column=4):
+        '''Set the value of table from list generated by get_table method'''
+        rows=row+1
+        columns=column+1
+        for row in range(1,rows):
+            for column in range(1,columns):
+                index = (row, column)
+                entry[index].insert(0,list[(row-1)][column-1])
+    def print_invoice():
+        invoice=inv_no.get()
+        customer=customer_name.get()
+        address= local_add.get()
+        cityname=city.get()
+        statename=state.get()
+        doctorname=doctor.get()
+        table= get_table()
+        print_deatils= {
+            "invoice":invoice,
+            "customer":customer,
+            "address":address,
+            "city":cityname,
+            "state":statename,
+            "doctor":doctorname,
+            "table":table
+        }
+        new= print_window(print_deatils)
     def get_table(row=10,column=4):
-        '''Return a list of lists, containing the data in the table'''
+        '''Return a list of lists, containing the data inside the table'''
         rows=row+1
         columns=column+1
         result = []
@@ -325,7 +365,7 @@ if __name__ == "__main__":
     optionsmenu=Menu(mainmenu,tearoff=0)
     optionsmenu.add_command(label="DB Connection",command=dbconn)
     optionsmenu.add_separator()
-    optionsmenu.add_command(label="Print",command=print_table)
+    optionsmenu.add_command(label="Print",command=print_invoice)
     optionsmenu.add_command(label="Exit",command=root.exit)
     mainmenu.add_cascade(label="Options",menu=optionsmenu)
     helpmenu=Menu(mainmenu,tearoff=0)
@@ -362,8 +402,8 @@ if __name__ == "__main__":
     root.create_grid_entry(master=frame1,variable=city,row=3,column=1,font=font1,padx=3,bd=3)
     root.create_grid_entry(master=frame1,variable=state,row=4,column=1,font=font1,padx=3,bd=3)
     root.create_grid_entry(master=frame1,variable=doctor,row=5,column=1,font=font1,padx=3,bd=3)
-    Button(frame1,text="Get invoice No",bg="RoyalBlue3",font=font1,fg="white",command=get_invoice_no).grid(row=0,column=2,padx=7)
-    Button(frame1,text="Load data from DB",bg="RoyalBlue3",font=font1,fg="white").grid(row=0,column=3,padx=7)
+    Button(frame1,text="Get invoice No",bg="RoyalBlue3",font=font1,fg="white",command=set_invoice_no).grid(row=0,column=2,padx=7)
+    Button(frame1,text="Load data from DB",bg="RoyalBlue3",font=font1,fg="white",command=plot_invoice).grid(row=0,column=3,padx=7)
     # creating frame2 for taking medicine details
     frame2=Frame(root)
     frame2.pack(pady=10,anchor="w",padx=10)
@@ -374,8 +414,9 @@ if __name__ == "__main__":
     row=4
     column=10
     entry = {}
+    # creating entry table
     create_table(frame2,column,row)
-    
+    # creating table headers
     for text,col in table_title:
         root.create_grid_label(master=frame2,text=text,row=0,column=col,font=font1,relief=None)
     for row in range(1,11):
@@ -386,7 +427,7 @@ if __name__ == "__main__":
     # frame3 containts
     # buttons
     root.create_button(frame3,"Create",side=LEFT,font=font2,padx=80,funcname=create_invoice)  
-    root.create_button(frame3,"Print",side=LEFT,font=font2,padx=80,ipadx=20)  
+    root.create_button(frame3,"Print",side=LEFT,font=font2,padx=80,ipadx=20,command=print_invoice)  
     root.create_button(frame3,"Exit",side=LEFT,font=font2,padx=80,ipadx=25,funcname=root.exit)
       
 
