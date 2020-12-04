@@ -1,5 +1,6 @@
 from tkinter import *
 import time, mysql.connector,csv,ast
+from ast import literal_eval
 from mysql.connector import errorcode
 from tkinter import messagebox
 class window(Tk):
@@ -186,8 +187,55 @@ labelwidth=15
 # Main Program
 if __name__ == "__main__":
     # Definations here
+    def clear_entries(row=10,column=4):
+        '''Return a list of lists, containing the data in the table'''
+        rows=row+1
+        columns=column+1
+        inv_no.set("")
+        customer_name.set("")
+        local_add.set("")
+        doctor.set("Dr. ")
+        for row in range(1,rows):
+            for column in range(1,columns):
+                index = (row, column)
+                entry[index].delete(0,'end')
+       
+    def encodeList(list):
+        '''Encoding algorith of list for database entry'''
+        string=str(list)
+        prepared_data=""
+        for char in string:
+            if char=="\'":
+                prepared_data += "\\'"
+            elif char==",":
+                prepared_data += "\\,"
+            else:
+                prepared_data += char
+
+        return prepared_data
+    def decodeList(str):
+        '''decoding algorithm for encoded list'''
+        list=str.replace("\\","")
+        list=ast.literal_eval(list) #convering string to list
+        return list
     def plot_invoice():
-        pass
+        try:
+            inv=inv_no.get()
+            cursor= root.cnx.cursor()
+            query=f"SELECT * FROM `medicalbill` where invoice_no={inv}"
+            cursor.execute(query)
+            for(srl_no,invoice_no,customer,address,cty,ste,doc,purchage_data) in cursor:
+                customer_name.set(customer)
+                local_add.set(address)
+                city.set(cty)
+                state.set(ste)
+                doctor.set(doc)
+                decoded_list=decodeList(purchage_data)
+                
+
+
+        except Exception as e:
+            messagebox.showerror("Error",e)
     def get_invoice_no():
         try:
             cursor= root.cnx.cursor()
@@ -210,6 +258,7 @@ if __name__ == "__main__":
             cursor.close()
             frame1.update()
         except:
+            cursor.close()
             messagebox.showerror("Error","Internal Error")
         return lastinv
 
@@ -220,15 +269,17 @@ if __name__ == "__main__":
         c_city= city.get()
         c_state= state.get()
         doc= doctor.get()
-        purchage_data= str(get_table())
+        purchage_data= get_table()
         #encoding list data to insert into db
-        prepared_data= purchage_data.replace(",","---")
-        prepared_data= purchage_data.replace("'","{")                
+        prepared_data= encodeList(purchage_data)              
         try:
             root.commit_db(query=f"INSERT INTO `{root.database}`.`{root.tablename}` (`invoice_no`,`customer`, `address`, `city`, `state`, `doctor`, `purchage_data`) VALUES ('{invoice}','{customer}', '{c_address}', '{c_city}', '{c_state}', '{doc}', '{prepared_data}')")
             messagebox.showinfo("Information","Invoice Created")
         except Exception as e:
             messagebox.showerror("error",e)
+        else:
+            clear_entries()
+            get_invoice_no()
     def about():
         messagebox.showinfo("About","Developed By: ")
     def dbconn():
@@ -292,6 +343,10 @@ if __name__ == "__main__":
     city=StringVar()
     state=StringVar()
     doctor=StringVar()
+    # setting default values
+    city.set("Jamshedpur")
+    state.set("Jharkhand")
+    doctor.set("Dr. ")
     # Basic Details
     # labels
     root.create_grid_label(master=frame1,text="Invoice no :",font=font1,row=0,column=0,width=labelwidth,bg=theme,anchor="e")
