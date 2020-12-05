@@ -428,7 +428,7 @@ if __name__ == "__main__":
         invoice= inv_no.get()
         customer=customer_name.get()
         table= get_table()
-        rowcount=1
+        count=1
         if invoice=="":
             messagebox.showwarning("Information","Invoice Number Required!")
             return False
@@ -438,22 +438,23 @@ if __name__ == "__main__":
         elif table[0][0]=="":
             messagebox.showwarning("Information","Atleast 1 Item Required!")
             return False
-        elif rowcount==1:
+        elif count==1:
+            rowcount=1
             for row in table:
                 if row[0] != "":
                     if row[1]=="" or row[2]=="" or row[3]=="":
                         messagebox.showwarning("Information",f"Fill all details in Row No-{rowcount}")
                         return False
-        else:
-            return True     
+                rowcount+=1
+            return True    
     def push_invoice():
         '''It push invoice data entered by user to database'''
+        root.update_status("Pushing data to database...")
         invoice= get_invoice_no()
         if check_duplicate_invoice(invoice):
             messagebox.showerror("Error","Duplicate Entry Found")
-        elif not validate_form():
-            pass
-        else:
+        elif validate_form():
+            print("pushing data")
             customer=customer_name.get()
             purchage_data= get_table()
             c_address= local_add.get()
@@ -469,6 +470,9 @@ if __name__ == "__main__":
                 messagebox.showerror("Error","Error Creating Invoice Entry")
             else:
                 clear_entries()
+        else:
+            pass
+        root.update_status()
     def about():
         '''Shows information about the application'''
         messagebox.showinfo("About","Developed By: ")
