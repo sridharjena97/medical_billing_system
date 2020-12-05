@@ -1,8 +1,10 @@
 from tkinter import *
-import time, mysql.connector,csv,ast
+import time, mysql.connector,csv,os,subprocess
+from PIL import Image
 from ast import literal_eval
 from mysql.connector import errorcode
 from tkinter import messagebox
+from tkinter.filedialog import asksaveasfilename
 class window(Tk):
     def __init__(self):
         super().__init__()
@@ -180,9 +182,138 @@ class conn_window(Frame):
         Button(frame1,text="update",font=font1,bg="skyblue",command=updateConnectionData).pack(padx=10,pady=5,side=LEFT)
         Button(frame1,text="close",font=font1,bg="skyblue",command=window1.destroy).pack(side=LEFT,padx=10)
 class print_window(Frame):
-    def __init__(self,data):
+    def __init__(self):
         Frame.__init__(self)
-        window1=Toplevel(self)    
+        window1=Toplevel(self)
+        # definations
+        def savedata():
+            if check_duplicate_invoice(invoice=inv_no.get()):
+                response=messagebox.askquestion("Question","Do you want to save DUPLICATE INVOICE?")
+                if response == "yes":
+                    savePDF()
+            else:
+                push_invoice()
+                savePDF()
+        def savePDF():
+            try:
+                self.canvas.postscript(file="tmp.ps",colormode='color')
+                file=asksaveasfilename(initialfile="Untitled.pdf",defaultextension=".pdf",filetypes=[("All Files","*.*"),("PDF Documents","*.pdf")])
+                process = subprocess.Popen(["ps2pdf", "tmp.ps", file], shell=True)
+                process.wait()
+                os.remove("tmp.ps")
+            except:
+                messagebox.showerror("Error","Install Ghost Script and add it's bin and lib file to system envronment.")
+                os.remove("tmp.ps")
+        def printdata():
+            try:
+                self.canvas.postscript(file="tmp.ps",colormode='color')
+                img=Image.open("tmp.ps")
+                img.save("tmp.png")
+                os.startfile("tmp.png","print")
+                os.remove("tmp.ps")
+            except:
+                messagebox.showerror("Error","Install Ghost Script and add it's bin and lib file to system envronment.")
+                os.remove("tmp.ps")
+                os.remove("tmp.png")
+        def checkprintdata():
+            if check_duplicate_invoice(invoice=inv_no.get()):
+                response=messagebox.askquestion("Question","Do you want to print DUPLICATE INVOICE?")
+                if response == "yes":
+                    printdata()
+            else:
+                push_invoice()
+                printdata()
+        # Initializing Window
+        window1.geometry("650x620+100+20")
+        window1.minsize(650,600)
+        window1.configure(bg="gray20")
+        window1.title("Print")
+        # Trying to set icon
+        try:
+            window1.iconbitmap("print.ico")
+        except:
+            pass
+        # variables
+        invoice=inv_no.get()
+        customer=customer_name.get()
+        c_address= local_add.get()
+        c_city= city.get()
+        c_state= state.get()
+        doc= doctor.get()
+        purchage_data= get_table()
+        # FONTS
+        fontlabel="Eras 9 bold"
+        fontinvoice= "Lucida 13 bold"
+        fontdata= "Lucida 13 normal"
+        fontdata1= "Lucida 8 bold"
+        fontdata2= "Lucida 8 normal"
+        # Creatting frame for displaying preview
+        frame1=Frame(window1)
+        frame1.pack(fill=BOTH)
+        # Frame for buttons
+        frame2=Frame(window1,bg="gray30")
+        frame2.pack(side=BOTTOM,fill=X)
+        Button(frame2,text="Print",font=font2,bd=3,relief=RAISED,command=checkprintdata).pack(side=LEFT,padx=10,pady=5)
+        Button(frame2,text="Save As PDF",font=font2,bd=3,relief=RAISED,command=savedata).pack(side=LEFT,padx=10,pady=5)
+        Button(frame2,text="Cancel",font=font2,bd=3,relief=RAISED, command=window1.destroy).pack(side=LEFT,padx=10,pady=5)
+        # creating casvas and ploting data
+        self.canvaswidth=600
+        self.canvasheight=550
+        self.canvas=Canvas(window1,height=self.canvasheight,width=self.canvaswidth,bd=1,relief=GROOVE)
+        self.canvas.create_text(300,25,font="Rockwell 17 bold",text="PAYMENT RECEIPT")
+        self.canvas.create_line(0,45,600,45,dash=(200,1))
+        self.canvas.create_text(10,70,font=fontlabel,text="INVOICE NUMBER:",anchor="w")
+        self.canvas.create_text(120,70,font=fontinvoice,text=invoice,anchor="w")
+        self.canvas.create_text(10,100,font=fontlabel,text="CUSTOMER NAME:",anchor="w")
+        self.canvas.create_text(120,100,font=fontdata,text=customer,anchor="w")
+        self.canvas.create_text(10,130,font=fontlabel,text="ADDRESS:",anchor="w")
+        self.canvas.create_text(73,130,font=fontdata,text=c_address,anchor="w")
+        self.canvas.create_text(392,130,font=fontlabel,text="CITY:",anchor="w")
+        self.canvas.create_text(425,130,font=fontdata,text=c_city,anchor="w")
+        self.canvas.create_text(380,160,font=fontlabel,text="STATE:",anchor="w")
+        self.canvas.create_text(425,160,font=fontdata,text=c_state,anchor="w")
+        self.canvas.create_text(10,160,font=fontlabel,text="REFERRED BY:",anchor="w")
+        self.canvas.create_text(93,160,font=fontdata,text=doc,anchor="w")
+        self.canvas.create_line(10,200,590,200) #table upper line
+        self.canvas.create_line(10,400,590,400) #table bottom line
+        self.canvas.create_line(10,200,10,400)  #table left line
+        self.canvas.create_line(590,200,590,400)#table right line
+        self.canvas.create_line(50,200,50,400,dash=(4,1))#table column1
+        self.canvas.create_line(340,200,340,400,dash=(4,1))#table column2
+        self.canvas.create_line(415,200,415,400,dash=(4,1))#table column3
+        self.canvas.create_line(490,200,490,400,dash=(4,1))#table column4
+        #self.canvas.create_line(10,230,590,230,dash=(4,1)) #table row1
+        ycord=230
+        a=0
+        while a<10:
+            self.canvas.create_line(10,ycord,590,ycord,dash=(4,1))
+            ycord+=17
+            a+=1
+        self.canvas.create_text(20,210,font=fontdata1,text="Srl.",anchor="w")    
+        self.canvas.create_text(70,210,font=fontdata1,text="MEDICINE NAME",anchor="w")
+        self.canvas.create_text(365,210,font=fontdata1,text="QTY",anchor="w")
+        self.canvas.create_text(425,210,font=fontdata1,text="UNIT PRICE",anchor="w")
+        self.canvas.create_text(505,210,font=fontdata1,text="TOTAL PRICE",anchor="w")
+        # self.canvas.create_text(25,233,font=fontdata1,text="1",anchor="w")
+        ycord=238
+        srl=1
+        for srl in range(1,11):
+            self.canvas.create_text(25,ycord,font=fontdata1,text=str(srl),anchor="w")
+            ycord+=17
+            srl+=1
+        ycord=238
+        xcord=[60,345,420,500]
+        for row in range(10):
+            for column in range(4):
+                self.canvas.create_text(xcord[column],ycord,font=fontdata2,text=purchage_data[row][column],anchor="w")
+            ycord+=17
+        self.canvas.create_text(450,460,font=fontlabel,text="SIGNATURE",anchor="w")
+        self.canvas.create_line(400,450,570,450)
+        self.canvas.create_text(300,490,font="Bookman 14 bold",text="JENA MEDICAL STORE")
+        self.canvas.create_text(300,510,font="Arial 11 normal",text="25/10 New market (Near SBI ATM), Choota Govindpur, Jamshedpur, pin-831010")
+        self.canvas.create_text(300,525,font="Arial 8 normal",text="Busniess timing: 8AM - 8PM (online delivery abailabe on phone. Call 999999999 for enquiry)")
+        self.canvas.create_text(300,542,font="Arial 8 normal",text="Tel- 0657 669 6652   Mobile- 999999999 / 88888888888")
+        self.canvas.pack(padx=10,pady=10)
 # Gui Variables for setting widets
 font1="Arial 12 normal"
 font2="Arial 13 normal"
@@ -195,7 +326,6 @@ if __name__ == "__main__":
         '''Clear Previous entries'''
         rows=row+1
         columns=column+1
-        inv_no.set("")
         customer_name.set("")
         local_add.set("")
         doctor.set("Dr. ")
@@ -219,7 +349,7 @@ if __name__ == "__main__":
     def decodeList(str):
         '''decoding algorithm for encoded list'''
         list=str.replace("\\","")
-        list=ast.literal_eval(list) #convering string to list
+        list=literal_eval(list) #convering string to list
         return list
     def plot_invoice():
         '''Recreate invoice from invoice number. It connect to data base and fetch respective data from database.'''
@@ -228,17 +358,24 @@ if __name__ == "__main__":
             cursor= root.cnx.cursor()
             query=f"SELECT * FROM `medicalbill` where invoice_no={inv}"
             cursor.execute(query)
-            for(srl_no,invoice_no,customer,address,cty,ste,doc,purchage_data) in cursor:
-                customer_name.set(customer)
-                local_add.set(address)
-                city.set(cty)
-                state.set(ste)
-                doctor.set(doc)
-                decoded_list=decodeList(purchage_data)
-                set_table(decoded_list)
-                cursor.close()
+            row=cursor.fetchall()
+            if row:
+                cursor.execute(query)
+                clear_entries()
+                for(srl_no,invoice_no,customer,address,cty,ste,doc,purchage_data) in cursor:
+                    customer_name.set(customer)
+                    local_add.set(address)
+                    city.set(cty)
+                    state.set(ste)
+                    doctor.set(doc)
+                    decoded_list=decodeList(purchage_data)
+                    set_table(decoded_list)
+                    cursor.close()
+            else:
+                messagebox.showerror("Error","No Entry Found on database!!!")
+                cursor.close()       
         except:
-            messagebox.showerror("Error","Internal Error")
+            messagebox.showerror("Error","Please Enter a Value. If value entered, Please check database connection.")
     def set_invoice_no():
         inv=get_invoice_no()
         inv_no.set(str(inv))
@@ -275,22 +412,35 @@ if __name__ == "__main__":
         else:
             clear_entries()
             set_invoice_no()
+    def check_duplicate_invoice(invoice):
+        cursor= root.cnx.cursor()
+        query=f"SELECT * FROM `medicalbill` WHERE invoice_no={invoice}"
+        cursor.execute(query)
+        row= cursor.fetchall()
+        cursor.close()
+        if row:
+            return True #duplicate exist
+        else:
+            return False
     def push_invoice():
         '''It push invoice data entered by user to database'''
         invoice= get_invoice_no()
-        customer=customer_name.get()
-        c_address= local_add.get()
-        c_city= city.get()
-        c_state= state.get()
-        doc= doctor.get()
-        purchage_data= get_table()
-        #encoding list data to insert into db
-        prepared_data= encodeList(purchage_data)              
-        try:
-            root.commit_db(query=f"INSERT INTO `{root.database}`.`{root.tablename}` (`invoice_no`,`customer`, `address`, `city`, `state`, `doctor`, `purchage_data`) VALUES ('{invoice}','{customer}', '{c_address}', '{c_city}', '{c_state}', '{doc}', '{prepared_data}')")
-            messagebox.showinfo("Information","Invoice Created")
-        except Exception as e:
-            messagebox.showerror("Error","Error Creating Invoice Entry")
+        if check_duplicate_invoice(invoice):
+            root.update_status(state="Duplicate invoice")
+        else:
+            customer=customer_name.get()
+            c_address= local_add.get()
+            c_city= city.get()
+            c_state= state.get()
+            doc= doctor.get()
+            purchage_data= get_table()
+            #encoding list data to insert into db
+            prepared_data= encodeList(purchage_data)              
+            try:
+                root.commit_db(query=f"INSERT INTO `{root.database}`.`{root.tablename}` (`invoice_no`,`customer`, `address`, `city`, `state`, `doctor`, `purchage_data`) VALUES ('{invoice}','{customer}', '{c_address}', '{c_city}', '{c_state}', '{doc}', '{prepared_data}')")
+                messagebox.showinfo("Information","Invoice Created")
+            except:
+                messagebox.showerror("Error","Error Creating Invoice Entry")
     def about():
         '''Shows information about the application'''
         messagebox.showinfo("About","Developed By: ")
@@ -327,23 +477,8 @@ if __name__ == "__main__":
                 index = (row, column)
                 entry[index].insert(0,list[(row-1)][column-1])
     def print_invoice():
-        invoice=inv_no.get()
-        customer=customer_name.get()
-        address= local_add.get()
-        cityname=city.get()
-        statename=state.get()
-        doctorname=doctor.get()
-        table= get_table()
-        print_deatils= {
-            "invoice":invoice,
-            "customer":customer,
-            "address":address,
-            "city":cityname,
-            "state":statename,
-            "doctor":doctorname,
-            "table":table
-        }
-        new= print_window(print_deatils)
+        '''calls print preview window'''
+        new= print_window()
     def get_table(row=10,column=4):
         '''Return a list of lists, containing the data inside the table'''
         rows=row+1
@@ -427,8 +562,7 @@ if __name__ == "__main__":
     # frame3 containts
     # buttons
     root.create_button(frame3,"Create",side=LEFT,font=font2,padx=80,funcname=create_invoice)  
-    root.create_button(frame3,"Print",side=LEFT,font=font2,padx=80,ipadx=20,command=print_invoice)  
+    root.create_button(frame3,"Print",side=LEFT,font=font2,padx=80,ipadx=20,funcname=print_invoice)  
     root.create_button(frame3,"Exit",side=LEFT,font=font2,padx=80,ipadx=25,funcname=root.exit)
-      
 
     root.mainloop()
