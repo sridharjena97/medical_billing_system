@@ -360,8 +360,8 @@ if __name__ == "__main__":
             cursor.execute(query)
             row=cursor.fetchall()
             if row:
-                cursor.execute(query)
                 clear_entries()
+                cursor.execute(query)
                 for(srl_no,invoice_no,customer,address,cty,ste,doc,purchage_data) in cursor:
                     customer_name.set(customer)
                     local_add.set(address)
