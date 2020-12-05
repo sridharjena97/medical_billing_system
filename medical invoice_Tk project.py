@@ -243,6 +243,7 @@ class print_window(Frame):
         c_state= state.get()
         doc= doctor.get()
         purchage_data= get_table()
+        total= totalInvoiceValue()
         # FONTS
         fontlabel="Eras 9 bold"
         fontinvoice= "Lucida 13 bold"
@@ -296,6 +297,8 @@ class print_window(Frame):
         self.canvas.create_text(365,210,font=fontdata1,text="QTY",anchor="w")
         self.canvas.create_text(425,210,font=fontdata1,text="UNIT PRICE",anchor="w")
         self.canvas.create_text(505,210,font=fontdata1,text="TOTAL PRICE",anchor="w")
+        self.canvas.create_text(370,415,font=fontdata,text="GRAND TOTAL:",anchor="w")
+        self.canvas.create_text(500,415,font=fontdata,text="₹"+total,anchor="w")
         # self.canvas.create_text(25,233,font=fontdata1,text="1",anchor="w")
         ycord=238
         srl=1
@@ -324,6 +327,40 @@ labelwidth=15
 # Main Program
 if __name__ == "__main__":
     # Definations here
+    def totalInvoiceValue():
+        table=get_table()
+        total="0"
+        for row in range(10):
+            for column in range(3,4):
+                # total+=int(table[row][column])
+                val=table[row][column]
+                if val=="":
+                    total+="+0"
+                else:
+                    total+="+"+val
+        total=eval(total)
+        return str(total)
+    def calTotal(event):
+        # Requsting Table
+        table= get_table()
+        # Extracting qty and unit price information from table
+        # Making list of tupples (qty,price) format
+        data=[]
+        for val in range(10):
+            data.append((table[val][1],table[val][2]))
+        # calculating total
+        total=[]
+        for qty,price in data:
+            if qty=="" or price=="":
+                total.append("")
+            else:
+                total.append(float(qty)*float(price))
+        # Displaying total on screen
+        for row in range(1,11):
+            for column in range(4,5):
+                index=(row,column)
+                entry[index].delete(0,END)
+                entry[index].insert(0,str(total[row-1]))
     def clear_entries(row=10,column=4):
         '''Clear Previous entries'''
         rows=row+1
@@ -454,7 +491,6 @@ if __name__ == "__main__":
         if check_duplicate_invoice(invoice):
             messagebox.showerror("Error","Duplicate Entry Found")
         elif validate_form():
-            print("pushing data")
             customer=customer_name.get()
             purchage_data= get_table()
             c_address= local_add.get()
@@ -494,6 +530,7 @@ if __name__ == "__main__":
                 index = (row, column)
                 e = Entry(master,font=font2)
                 e.grid(row=row, column=column, stick="nsew")
+                e.bind("<FocusIn>",calTotal)
                 entry[index] = e
         # adjust column weights so they all expand equally
         for column in range(columns):
@@ -579,7 +616,7 @@ if __name__ == "__main__":
     frame2.pack(pady=10,anchor="w",padx=10)
     # frame2 containts
     # variables
-    table_title=[("Srl",0),("Medicine Name",1),("Qty",2),("Rate",3),("Total",4)]
+    table_title=[("Srl",0),("Medicine Name",1),("Qty",2),("Unit Price",3),("Total",4)]
     # important constants for table
     row=4
     column=10
