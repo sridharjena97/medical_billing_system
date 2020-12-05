@@ -191,9 +191,10 @@ class print_window(Frame):
                 response=messagebox.askquestion("Question","Do you want to save DUPLICATE INVOICE?")
                 if response == "yes":
                     savePDF()
+                    clear_entries()
             else:
-                push_invoice()
                 savePDF()
+                push_invoice()
         def savePDF():
             try:
                 self.canvas.postscript(file="tmp.ps",colormode='color')
@@ -220,6 +221,7 @@ class print_window(Frame):
                 response=messagebox.askquestion("Question","Do you want to print DUPLICATE INVOICE?")
                 if response == "yes":
                     printdata()
+                    clear_entries()
             else:
                 push_invoice()
                 printdata()
@@ -410,7 +412,6 @@ if __name__ == "__main__":
         except:
             messagebox.showerror("error","Internal Error")
         else:
-            clear_entries()
             set_invoice_no()
     def check_duplicate_invoice(invoice):
         cursor= root.cnx.cursor()
@@ -422,18 +423,43 @@ if __name__ == "__main__":
             return True #duplicate exist
         else:
             return False
+    def validate_form():
+        '''Form Validation'''
+        invoice= inv_no.get()
+        customer=customer_name.get()
+        table= get_table()
+        rowcount=1
+        if invoice=="":
+            messagebox.showwarning("Information","Invoice Number Required!")
+            return False
+        elif customer=="":
+            messagebox.showwarning("Information","Customer Name Required!")
+            return False
+        elif table[0][0]=="":
+            messagebox.showwarning("Information","Atleast 1 Item Required!")
+            return False
+        elif rowcount==1:
+            for row in table:
+                if row[0] != "":
+                    if row[1]=="" or row[2]=="" or row[3]=="":
+                        messagebox.showwarning("Information",f"Fill all details in Row No-{rowcount}")
+                        return False
+        else:
+            return True     
     def push_invoice():
         '''It push invoice data entered by user to database'''
         invoice= get_invoice_no()
         if check_duplicate_invoice(invoice):
-            root.update_status(state="Duplicate invoice")
+            messagebox.showerror("Error","Duplicate Entry Found")
+        elif not validate_form():
+            pass
         else:
             customer=customer_name.get()
+            purchage_data= get_table()
             c_address= local_add.get()
             c_city= city.get()
             c_state= state.get()
             doc= doctor.get()
-            purchage_data= get_table()
             #encoding list data to insert into db
             prepared_data= encodeList(purchage_data)              
             try:
@@ -441,6 +467,8 @@ if __name__ == "__main__":
                 messagebox.showinfo("Information","Invoice Created")
             except:
                 messagebox.showerror("Error","Error Creating Invoice Entry")
+            else:
+                clear_entries()
     def about():
         '''Shows information about the application'''
         messagebox.showinfo("About","Developed By: ")
@@ -478,7 +506,10 @@ if __name__ == "__main__":
                 entry[index].insert(0,list[(row-1)][column-1])
     def print_invoice():
         '''calls print preview window'''
-        new= print_window()
+        if not validate_form():
+            pass
+        else:
+            new= print_window()
     def get_table(row=10,column=4):
         '''Return a list of lists, containing the data inside the table'''
         rows=row+1
