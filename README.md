@@ -1,4 +1,4 @@
-# MEDICAL INVOICE SYSTEM
+# MEDICAL BILLING SYSTEM
 
 
 [![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://travis-ci.org/joemccann/dillinger)
