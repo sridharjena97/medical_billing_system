@@ -1,7 +1,6 @@
-*.csv
-*.ico
 *.png
 *.ps
+*.vscode
 test.py
 test1.py
 test2.py

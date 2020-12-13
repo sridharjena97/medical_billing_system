@@ -198,24 +198,20 @@ class print_window(Frame):
         def savePDF():
             try:
                 self.canvas.postscript(file="tmp.ps",colormode='color')
-                file=asksaveasfilename(initialfile="Untitled.pdf",defaultextension=".pdf",filetypes=[("All Files","*.*"),("PDF Documents","*.pdf")])
+                file=asksaveasfilename(initialfile=f"{inv_no.get()}.pdf",defaultextension=".pdf",filetypes=[("All Files","*.*"),("PDF Documents","*.pdf")])
                 process = subprocess.Popen(["ps2pdf", "tmp.ps", file], shell=True)
                 process.wait()
-                os.remove("tmp.ps")
+                
             except:
                 messagebox.showerror("Error","Install Ghost Script and add it's bin and lib file to system envronment.")
-                os.remove("tmp.ps")
         def printdata():
             try:
                 self.canvas.postscript(file="tmp.ps",colormode='color')
                 img=Image.open("tmp.ps")
                 img.save("tmp.png")
                 os.startfile("tmp.png","print")
-                os.remove("tmp.ps")
             except:
                 messagebox.showerror("Error","Install Ghost Script and add it's bin and lib file to system envronment.")
-                os.remove("tmp.ps")
-                os.remove("tmp.png")
         def checkprintdata():
             if check_duplicate_invoice(invoice=inv_no.get()):
                 response=messagebox.askquestion("Question","Do you want to print DUPLICATE INVOICE?")
@@ -328,6 +324,7 @@ labelwidth=15
 if __name__ == "__main__":
     # Definations here
     def totalInvoiceValue():
+        '''Retuns total invoice value'''
         table=get_table()
         total="0"
         for row in range(10):
@@ -338,9 +335,11 @@ if __name__ == "__main__":
                     total+="+0"
                 else:
                     total+="+"+val
+        # Evaluating concatinated  string data eg. "1+2+3+4" will be evaluated as 10.
         total=eval(total)
         return str(total)
     def calTotal(event):
+        '''Multiply qty with price and return value'''
         # Requsting Table
         table= get_table()
         # Extracting qty and unit price information from table
