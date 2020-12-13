@@ -58,6 +58,8 @@ MIT
 <img src="screenshots/connection.jpg" style="float: left; margin-right: 10px;"/>
 
 ***Receipt Preview Window***
+
+
 <img src="screenshots/receipt.jpg" style="float: left; margin-right: 10px;"/>
 
 ***Saving PDF of invoice***
