@@ -50,9 +50,17 @@ License
 MIT
 
 ## SCREENSHOTS
+
+***Main Page of the Application***
 <img src="screenshots/mainpage.jpg" style="float: left; margin-right: 10px;"/>
+
+***Connection window to configure SQL database connection***
 <img src="screenshots/connection.jpg" style="float: left; margin-right: 10px;"/>
+
+***Receipt Preview Window***
 <img src="screenshots/receipt.jpg" style="float: left; margin-right: 10px;"/>
+
+***Saving PDF of invoice***
 <img src="screenshots/save.jpg" style="float: left; margin-right: 10px;"/>
 
 **Free Software, Hell Yeah!**
