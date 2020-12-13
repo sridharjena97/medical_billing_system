@@ -1,4 +1,4 @@
-# INVOICE SYSTEM
+# MEDICAL INVOICE SYSTEM
 
 
 [![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://travis-ci.org/joemccann/dillinger)
@@ -12,9 +12,10 @@ This is developed for demo and educational purpose. Contact below for any querry
 
   - Create Invoices
   - Print invoices
-  - Save invoices in your local storage
+  - Save invoices into your local storage
 
 ### Installation
+
 **This is the guide for windows systems
 - Install python >=3.7
 ```sh
@@ -48,7 +49,7 @@ License
 
 MIT
 
-### Screnshots
+## . SCREENSHOTS
 <img src="screenshots/mainpage.jpg" style="float: left; margin-right: 10px;"/>
 <img src="screenshots/connection.jpg" style="float: left; margin-right: 10px;"/>
 <img src="screenshots/receipt.jpg" style="float: left; margin-right: 10px;"/>
