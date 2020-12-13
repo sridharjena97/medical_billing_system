@@ -49,7 +49,7 @@ License
 
 MIT
 
-## . SCREENSHOTS
+## SCREENSHOTS
 <img src="screenshots/mainpage.jpg" style="float: left; margin-right: 10px;"/>
 <img src="screenshots/connection.jpg" style="float: left; margin-right: 10px;"/>
 <img src="screenshots/receipt.jpg" style="float: left; margin-right: 10px;"/>
